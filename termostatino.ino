@@ -6,37 +6,42 @@
 #include <dht11.h>
 #include <LiquidCrystal.h>
 #define DHTPIN 8    
-#include<stdlib.h>
+#include <stdlib.h>
 
 // Temperature sensor
 dht11 dht;
-const int tempSoglia = 20;
+const int tempSoglia = 30;
 //LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 // 10-13 are used by the eth shield.
 LiquidCrystal lcd(9, 6, 5, 4, 3, 2);
 // pin used for the relay. Do we need it?
 const int relay = 7;
 // Auto-assigned ip address and mac.
-byte mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x23, 0x5D }; 
-byte ip[] = { 130, 192, 140, 199 };
+byte mac[] = { 0x90, 0xA2, 0xDA, 0xEF, 0x23, 0x5D }; 
+byte ip[] = { 130, 192, 147, 17 };
 // Web client and server.
 EthernetClient client;
 // We send heartbeats and tell to send alert email to tungsteno.
-IPAddress web_server(130, 192, 147, 6);
-
+//IPAddress web_server(130, 192, 147, 6);
+byte web_server[] = { 130, 192, 147, 6 };
 void sendHeartbeat()
 {
-    if (client.connect(web_server, 80)) {
-        // Make a HTTP GET:
-        client.println("GET /termostatino/beat.html HTTP/1.1");           
-        client.println("Host: 130.192.140.199"); // bad hardcoded
-        client.println("Connection: close");
-        client.println("User-Agent: Arduino/1.0");
-        client.println();
-    } else {
+      int res = client.connect(web_server, 80);
+      if (res != 1) {
         // if you didn't get a connection to the server:
-        Serial.println("connection with web server failed");
-    }
+        Serial.println("get connection with web server failed");
+        Serial.println(res);
+        } else {
+          // Make a HTTP GET:
+          client.println("GET /termostatino/index.html HTTP/1.1");           
+          client.println("Host: 130.192.147.6"); // bad hardcoded
+          client.println("Connection: close");
+          client.println("User-Agent: Arduino/1.0");
+          client.println();
+          Serial.println("battito");
+          client.flush();
+          client.stop();
+       }
 }
 
 int sendMail(float ftemp)
@@ -44,20 +49,22 @@ int sendMail(float ftemp)
     if (client.connect(web_server, 80)) {
         // Make a HTTP POST:
         client.println("POST /termostatino/send_mail.php HTTP/1.1");           
-        client.println("Host: 130.192.140.199"); // bad hardcoded
+        client.println("Host: 130.192.147.6"); // bad hardcoded
         client.println("Content-Type: application/x-www-form-urlencoded");
         client.println("Connection: close");
         client.println("User-Agent: Arduino/1.0");
         client.print("Content-Length: ");
-        char ctemp[10]; // XXX fix this horror
-        dtostrf(ftemp, 6, 2, ctemp);
-        String temp = String(ctemp);
-        //String temp = "5";
+        //char ctemp[10]; // XXX fix this horror
+        //dtostrf(ftemp, 6, 2, ctemp);
+        //String temp = String(ctemp);
+        String temp = "5";
         client.println(temp.length());
         client.println();
         client.print(String("temp=" + temp));
         client.println();                                           
         // http://forum.arduino.cc/index.php?topic=155218.0
+        client.flush();
+        client.stop();
         return(1);
     } else {
         // if you didn't get a connection to the server:
@@ -74,6 +81,7 @@ void setup()
     lcd.print("Setup");
     // We connect.
     Ethernet.begin(mac, ip); //dns, gateway, subnet
+    delay(60000);
 }
 
 void loop() 
@@ -118,5 +126,6 @@ void loop()
         sendHeartbeat();
     }
     // We read a value every 10 seconds.
-    delay(10000);
+    delay(5000);
 }
+
