@@ -1,4 +1,4 @@
-#include <ICMPPing.h> 
+//#include <ICMPPing.h> 
 // is this needed to receive ping also? I do not think so, check.
 #include <util.h>
 #include <SPI.h>
@@ -6,6 +6,7 @@
 #include <dht11.h>
 #include <LiquidCrystal.h>
 #define DHTPIN 8    
+#include<stdlib.h>
 
 // Temperature sensor
 dht11 dht;
@@ -23,9 +24,51 @@ EthernetClient client;
 // We send heartbeats and tell to send alert email to tungsteno.
 IPAddress web_server(130, 192, 147, 6);
 
+void sendHeartbeat()
+{
+    if (client.connect(web_server, 80)) {
+        // Make a HTTP GET:
+        client.println("GET /termostatino/beat.html HTTP/1.1");           
+        client.println("Host: 130.192.140.199"); // bad hardcoded
+        client.println("Connection: close");
+        client.println("User-Agent: Arduino/1.0");
+        client.println();
+    } else {
+        // if you didn't get a connection to the server:
+        Serial.println("connection with web server failed");
+    }
+}
+
+int sendMail(float ftemp)
+{
+    if (client.connect(web_server, 80)) {
+        // Make a HTTP POST:
+        client.println("POST /termostatino/send_mail.php HTTP/1.1");           
+        client.println("Host: 130.192.140.199"); // bad hardcoded
+        client.println("Content-Type: application/x-www-form-urlencoded");
+        client.println("Connection: close");
+        client.println("User-Agent: Arduino/1.0");
+        client.print("Content-Length: ");
+        char ctemp[10]; // XXX fix this horror
+        dtostrf(ftemp, 6, 2, ctemp);
+        String temp = String(ctemp);
+        //String temp = "5";
+        client.println(temp.length());
+        client.println();
+        client.print(String("temp=" + temp));
+        client.println();                                           
+        // http://forum.arduino.cc/index.php?topic=155218.0
+        return(1);
+    } else {
+        // if you didn't get a connection to the server:
+        Serial.println("connection with web server failed");
+        return(0);
+    }
+}
+
 void setup() 
 {
-	Serial.begin(9600);
+    Serial.begin(9600);
     lcd.begin(16, 2);
     pinMode(relay, OUTPUT);
     lcd.print("Setup");
@@ -38,81 +81,42 @@ void loop()
     int chk = dht.read(DHTPIN);
     float h = dht.humidity;
     float t = dht.temperature;
-	if (isnan(t) || isnan(h)) {
-    	Serial.println("Failed to read from DHT");
-	    switch (chk) {
-		    case DHTLIB_OK: 
-				Serial.println("The sensor is misbehaving seriously"); 
-				break;
-		    case DHTLIB_ERROR_CHECKSUM: 
-				Serial.println("Checksum error"); 
-				break;
-		    case DHTLIB_ERROR_TIMEOUT: 
-				Serial.println("Time out error"); 
-				break;
-		    default: 
-				Serial.println("Unknown error"); 
-				break;
-	} else {
-		lcd.setCursor(0,0);
-	    lcd.print("Temp=");
-	    lcd.print(t);
-	    lcd.print(" *C");
-	    lcd.setCursor(0,1);
-	    lcd.print("Humidity=");
-	    lcd.print(h);
-	    lcd.print("% ");
-   		if(t > tempSoglia) {
-   	    	digitalWrite(relay, HIGH);
-			int chk_m = sendMail(t);
-			if (!chk_m) {
-				Serial.println("Failed to send mail");
-			}
-      	} else {
-        	digitalWrite(relay, LOW);
-      	}
-	sendHeartbeat();
-	// We read a value every 10 seconds.
-	delay(10000);
-	}
-}
-
-
-void sendHeartbeat()
-{
-	if (client.connect(server, 80)) {
-		// Make a HTTP GET:
-    	client.println("GET /termostatino/beat.html HTTP/1.1");           
-		client.println("Host: 130.192.140.199"); // bad hardcoded
-    	client.println("Connection: close");
-	    client.println("User-Agent: Arduino/1.0");
-	    client.println();
-
-	} else {
-		// if you didn't get a connection to the server:
-   		Serial.println("connection with web server failed");
-  }
-}
-
-int sendMail(temp)
-{
-	if (client.connect(server, 80)) {
-		// Make a HTTP POST:
-    	client.println("POST /termostatino/send_mail.php HTTP/1.1");           
-		client.println("Host: 130.192.140.199"); // bad hardcoded
-    	client.println("Content-Type: application/x-www-form-urlencoded");
-    	client.println("Connection: close");
-	    client.println("User-Agent: Arduino/1.0");
-	    client.print("Content-Length: ");
-	    client.println(temp.length());
-	    client.println();
-	    client.print(String("temp=" + temp));
-	    client.println();                                           
-		// http://forum.arduino.cc/index.php?topic=155218.0
-		return(1);
-	} else {
-		// if you didn't get a connection to the server:
-   		Serial.println("connection with web server failed");
-		return(0);
-  }
+    if (isnan(t) || isnan(h)) {
+        Serial.println("Failed to read from DHT");
+        switch (chk) {
+            case DHTLIB_OK: 
+                Serial.println("The sensor is misbehaving seriously"); 
+                break;
+            case DHTLIB_ERROR_CHECKSUM: 
+                Serial.println("Checksum error"); 
+                break;
+            case DHTLIB_ERROR_TIMEOUT: 
+                Serial.println("Time out error"); 
+                break;
+            default: 
+                Serial.println("Unknown error"); 
+                break;
+        }
+    } else {
+        lcd.setCursor(0,0);
+        lcd.print("Temp=");
+        lcd.print(t);
+        lcd.print(" *C");
+        lcd.setCursor(0,1);
+        lcd.print("Humidity=");
+        lcd.print(h);
+        lcd.print("% ");
+        if(t > tempSoglia) {
+            digitalWrite(relay, HIGH);
+            int chk_m = sendMail(t);
+            if (!chk_m) {
+                Serial.println("Failed to send mail");
+            } else {
+                digitalWrite(relay, LOW);
+            }
+        }
+        sendHeartbeat();
+    }
+    // We read a value every 10 seconds.
+    delay(10000);
 }
