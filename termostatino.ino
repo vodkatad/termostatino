@@ -119,9 +119,9 @@ void loop()
             int chk_m = sendMail(t);
             if (!chk_m) {
                 Serial.println("Failed to send mail");
-            } else {
-                digitalWrite(relay, LOW);
             }
+        } else {
+            digitalWrite(relay, LOW);
         }
         sendHeartbeat();
     }
