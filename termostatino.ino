@@ -20,7 +20,8 @@ byte mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x23, 0x5D };
 byte ip[] = { 130, 192, 140, 199 };
 // Web client and server.
 EthernetClient client;
-EthernetServer server;
+// We send heartbeats and tell to send alert email to tungsteno.
+IPAddress web_server(130, 192, 147, 6);
 
 void setup() 
 {
@@ -70,26 +71,35 @@ void loop()
       	} else {
         	digitalWrite(relay, LOW);
       	}
-	//sendHeartbeat();
+	sendHeartbeat();
 	// We read a value every 10 seconds.
 	delay(10000);
 	}
 }
 
 
-/* Can we use a server inside arduino or not? Having the server waiting is not an option...
-int sendHeartbeat()
+void sendHeartbeat()
 {
+	if (client.connect(server, 80)) {
+		// Make a HTTP GET:
+    	client.println("GET /termostatino/beat.html HTTP/1.1");           
+		client.println("Host: 130.192.140.199"); // bad hardcoded
+    	client.println("Connection: close");
+	    client.println("User-Agent: Arduino/1.0");
+	    client.println();
+
+	} else {
+		// if you didn't get a connection to the server:
+   		Serial.println("connection with web server failed");
+  }
 }
-*/
 
 int sendMail(temp)
 {
-	IPAddress web_server(130, 192, 147, 6);
 	if (client.connect(server, 80)) {
 		// Make a HTTP POST:
     	client.println("POST /termostatino/send_mail.php HTTP/1.1");           
-	    client.println("Host: 130.192.140.199"); // bad hardcoded
+		client.println("Host: 130.192.140.199"); // bad hardcoded
     	client.println("Content-Type: application/x-www-form-urlencoded");
     	client.println("Connection: close");
 	    client.println("User-Agent: Arduino/1.0");
