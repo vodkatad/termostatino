@@ -3,6 +3,7 @@ import smtplib
 import time
 import threading
 from email.mime.text import MIMEText
+from secrets import ced_pwd
 
 #WANTED_IP = '130.192.147.99'
 WANTED_IP = '127.0.0.1'
@@ -49,7 +50,7 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 		msg['To'] = TO
 		try:
 			s = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-			s.login(FROM, 'ufficiotica2?0')
+			s.login(FROM, ced_pwd)
 			s.sendmail(FROM, TO, msg.as_string())
 			s.quit()
 		except smtplib.SMTPConnectError as sce:
