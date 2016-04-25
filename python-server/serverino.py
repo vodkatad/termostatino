@@ -14,6 +14,9 @@ TO = 'grassi.e@gmail.com'
 HEARTBEAT_TIMEOUT = 6
 HEARTBEAT_TIMER = 60
 
+TEMP_ALARM = 30
+COUNT_HIGHER_LIMIT = 6
+
 def timer_hb():
 	# We expect a heartbeat every 10'' and we send a warning mail
 	# if we get less than 6 hb in 1'.
@@ -26,8 +29,10 @@ def timer_hb():
 	TermostatinoHandler.lock.release()
 	threading.Timer(HEARTBEAT_TIMER, timer_hb).start()
 
+# TODO GET on page telling the temperature!
 class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	count_heartbeat = 0
+	count_temp_higher = 0
 	lock = threading.Lock()
 	threading.Timer(HEARTBEAT_TIMER, timer_hb).start()
 
@@ -70,17 +75,19 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	#def log_error(self, format, *args):
 	#	print "log error"
 	#	self.send_mail(format, True)
-	
-	def do_GET(self):
-		#curl -v localhost:8000/TermostatinoHandler
-		if self.check_request():
-			TermostatinoHandler.lock.acquire()
-			TermostatinoHandler.count_heartbeat += 1
-			TermostatinoHandler.lock.release()
-			print "beat"
-			self.send_response(200, "Tutto OK!")
+	def manage_temp(self, temp):
+		# We will get a ton of mail if temperature continue to switch across the limit.
+		# Otherwise a mail every hour after the first one.
+		print "Seen temp " + str(temp)
+		print "Seen temp " + str(TermostatinoHandler.count_temp_higher)
+		t = float(temp.split("=")[1])
+		if t >= TEMP_ALARM:
+			if TermostatinoHandler.count_temp_higher >= COUNT_HIGHER_LIMIT or TermostatinoHandler.count_temp_higher == 0:
+				if TermostatinoHandler.count_temp_higher % 360 == 0:
+					TermostatinoHandler.send_mail(t)
+			TermostatinoHandler.count_temp_higher += 1
 		else:
-			TermostatinoHandler.send_mail("Wrong request GET", True)
+			TermostatinoHandler.count_temp_higher = 0
 
 	def do_POST(self):
 		#curl -v -d 'temp:45'  localhost:8000/TermostatinoHandler
@@ -88,7 +95,11 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 			length = int(self.headers["Content-Length"])
 			self.send_response(200, "Tutto OK!")
 			entity = self.rfile.read(length)
-			TermostatinoHandler.send_mail(entity)
+			self.manage_temp(entity)
+			TermostatinoHandler.lock.acquire()
+			TermostatinoHandler.count_heartbeat += 1
+			TermostatinoHandler.lock.release()
+			print "beat"
 		else:
 			TermostatinoHandler.send_mail("Wrong request POST", True)
 

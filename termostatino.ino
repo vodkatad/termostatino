@@ -24,25 +24,6 @@ EthernetClient client;
 // We send heartbeats and tell to send alert email to tungsteno.
 //IPAddress web_server(130, 192, 147, 6);
 byte web_server[] = { 130, 192, 147, 6 };
-void sendHeartbeat()
-{
-    int res = client.connect(web_server, 8000);
-    if (res != 1) {
-        // if you didn't get a connection to the server:
-        Serial.println("connection with web server failed, GET");
-        Serial.println(res);
-    } else {
-        // Make a HTTP GET:
-        client.println("GET /TermostatinoHandler HTTP/1.1");           
-        client.println("Host: 130.192.147.6"); // bad hardcoded
-        client.println("Connection: close");
-        client.println("User-Agent: Arduino/1.0");
-        client.println();
-        Serial.println("battito");
-        client.flush();
-        client.stop();
-    }
-}
 
 int sendMail(float ftemp)
 {
@@ -59,7 +40,7 @@ int sendMail(float ftemp)
         String temp = String(ctemp);
         client.println(temp.length());
         client.println();
-        client.print(String("temp:" + temp));
+        client.print(String("temp=" + temp));
         client.println();                                           
         // http://forum.arduino.cc/index.php?topic=155218.0
         client.flush();
@@ -115,14 +96,13 @@ void loop()
         lcd.print("% ");
         if(t > tempSoglia) {
             digitalWrite(relay, HIGH);
-            int chk_m = sendMail(t);
-            if (!chk_m) {
-                Serial.println("Failed to send mail");
-            }
         } else {
             digitalWrite(relay, LOW);
         }
-        sendHeartbeat();
+        int chk_m = sendMail(t);
+        if (!chk_m) {
+            Serial.println("Failed to send mail");
+        }
     }
     // We read a value every 10 seconds.
     delay(10000);
