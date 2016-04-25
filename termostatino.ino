@@ -26,41 +26,40 @@ EthernetClient client;
 byte web_server[] = { 130, 192, 147, 6 };
 void sendHeartbeat()
 {
-      int res = client.connect(web_server, 80);
-      if (res != 1) {
+    int res = client.connect(web_server, 8000);
+    if (res != 1) {
         // if you didn't get a connection to the server:
-        Serial.println("get connection with web server failed");
+        Serial.println("connection with web server failed, GET");
         Serial.println(res);
-        } else {
-          // Make a HTTP GET:
-          client.println("GET /termostatino/index.html HTTP/1.1");           
-          client.println("Host: 130.192.147.6"); // bad hardcoded
-          client.println("Connection: close");
-          client.println("User-Agent: Arduino/1.0");
-          client.println();
-          Serial.println("battito");
-          client.flush();
-          client.stop();
-       }
+    } else {
+        // Make a HTTP GET:
+        client.println("GET /TermostatinoHandler HTTP/1.1");           
+        client.println("Host: 130.192.147.6"); // bad hardcoded
+        client.println("Connection: close");
+        client.println("User-Agent: Arduino/1.0");
+        client.println();
+        Serial.println("battito");
+        client.flush();
+        client.stop();
+    }
 }
 
 int sendMail(float ftemp)
 {
-    if (client.connect(web_server, 80)) {
+    if (client.connect(web_server, 8000)) {
         // Make a HTTP POST:
-        client.println("POST /termostatino/send_mail.php HTTP/1.1");           
+        client.println("POST /TermostatinoHandler HTTP/1.1");           
         client.println("Host: 130.192.147.6"); // bad hardcoded
         client.println("Content-Type: application/x-www-form-urlencoded");
         client.println("Connection: close");
         client.println("User-Agent: Arduino/1.0");
         client.print("Content-Length: ");
-        //char ctemp[10]; // XXX fix this horror
-        //dtostrf(ftemp, 6, 2, ctemp);
-        //String temp = String(ctemp);
-        String temp = "5";
+        char ctemp[10]; // FIXME 
+        dtostrf(ftemp, 6, 2, ctemp);
+        String temp = String(ctemp);
         client.println(temp.length());
         client.println();
-        client.print(String("temp=" + temp));
+        client.print(String("temp:" + temp));
         client.println();                                           
         // http://forum.arduino.cc/index.php?topic=155218.0
         client.flush();
@@ -68,7 +67,7 @@ int sendMail(float ftemp)
         return(1);
     } else {
         // if you didn't get a connection to the server:
-        Serial.println("connection with web server failed");
+        Serial.println("connection with web server failed, POST");
         return(0);
     }
 }
@@ -126,6 +125,6 @@ void loop()
         sendHeartbeat();
     }
     // We read a value every 10 seconds.
-    delay(5000);
+    delay(10000);
 }
 
