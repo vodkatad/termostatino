@@ -5,7 +5,7 @@ import threading
 from email.mime.text import MIMEText
 from secrets import ced_pwd
 
-#WANTED_IP = '130.192.147.99'
+#WANTED_IP = '130.192.147.17'
 WANTED_IP = '127.0.0.1'
 LISTEN_PORT = 8000
 WANTED_PATH = '/TermostatinoHandler'
@@ -21,12 +21,14 @@ def timer_hb():
 	print TermostatinoHandler.count_heartbeat
 	if TermostatinoHandler.count_heartbeat < HEARTBEAT_TIMEOUT:
 		TermostatinoHandler.send_mail("Termostatino is not beating!", True)
-	# We have a sync problem here, right?
+	TermostatinoHandler.lock.acquire()
 	TermostatinoHandler.count_heartbeat = 0
+	TermostatinoHandler.lock.release()
 	threading.Timer(HEARTBEAT_TIMER, timer_hb).start()
 
 class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	count_heartbeat = 0
+	lock = threading.Lock()
 	threading.Timer(HEARTBEAT_TIMER, timer_hb).start()
 
 	def check_request(self):
@@ -72,7 +74,9 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	def do_GET(self):
 		#curl -v localhost:8000/TermostatinoHandler
 		if self.check_request():
+			TermostatinoHandler.lock.acquire()
 			TermostatinoHandler.count_heartbeat += 1
+			TermostatinoHandler.lock.release()
 			print "beat"
 			self.send_response(200, "Tutto OK!")
 		else:
