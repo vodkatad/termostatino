@@ -1,5 +1,7 @@
 import BaseHTTPServer
 import smtplib
+import time
+import threading
 from email.mime.text import MIMEText
 
 #WANTED_IP = '130.192.147.99'
@@ -8,21 +10,37 @@ LISTEN_PORT = 8000
 WANTED_PATH = '/TermostatinoHandler'
 FROM = 'ced.control@gmail.com'
 TO = 'grassi.e@gmail.com'
+HEARTBEAT_TIMEOUT = 6
+HEARTBEAT_TIMER = 60
+
+def timer_hb():
+	# We expect a heartbeat every 10'' and we send a warning mail
+	# if we get less than 6 hb in 1'.
+	print "timer"
+	print TermostatinoHandler.count_heartbeat
+	if TermostatinoHandler.count_heartbeat < HEARTBEAT_TIMEOUT:
+		TermostatinoHandler.send_mail("Termostatino is not beating!", True)
+	# We have a sync problem here, right?
+	TermostatinoHandler.count_heartbeat = 0
+	threading.Timer(HEARTBEAT_TIMER, timer_hb).start()
 
 class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	count_heartbeat = 0
+	threading.Timer(HEARTBEAT_TIMER, timer_hb).start()
+
 	def check_request(self):
 		""" 
 		Checks whether the request comes from our arduino.
 		
 		Return true if all parameters fit, false otherwise.
 		"""
-		return self.client_address == (WANTED_IP, LISTEN_PORT) and self.path == WANTED_PATH
+		return self.client_address[0] == WANTED_IP and self.path == WANTED_PATH
 		# The check on PORT is obviously redundant.
 
-	def send_mail(self, body, error=False):
+	@staticmethod
+	def send_mail(body, error=False):
 		if error:
-			msg = MIMEText("Wrong request to TermostatinoHandler " + str(body))
+			msg = MIMEText("TermostatinoHandler error: " + str(body))
 			msg['Subject'] = 'TermostatinoHandler error'
 		else:
 			msg = MIMEText("CED temperature beyond the limit " + str(body))
@@ -49,23 +67,25 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	#def log_error(self, format, *args):
 	#	print "log error"
 	#	self.send_mail(format, True)
-
+	
 	def do_GET(self):
+		#curl -v localhost:8000/TermostatinoHandler
 		if self.check_request():
+			TermostatinoHandler.count_heartbeat += 1
+			print "beat"
 			self.send_response(200, "Tutto OK!")
 		else:
-			self.send_mail("Wrong request GET", True)
-		#curl -v localhost:8000/TermostatinoHandler
+			TermostatinoHandler.send_mail("Wrong request GET", True)
 
 	def do_POST(self):
+		#curl -v -d 'temp:45'  localhost:8000/TermostatinoHandler
 		if self.check_request():
 			length = int(self.headers["Content-Length"])
 			self.send_response(200, "Tutto OK!")
 			entity = self.rfile.read(length)
-			self.send_mail(entity)
-			#curl -v -d 'temp:45'  localhost:8000/TermostatinoHandler
+			TermostatinoHandler.send_mail(entity)
 		else:
-			self.send_mail("Wrong request POST", True)
+			TermostatinoHandler.send_mail("Wrong request POST", True)
 
 server_address = ('', LISTEN_PORT)
 httpd = BaseHTTPServer.HTTPServer(server_address, TermostatinoHandler)
