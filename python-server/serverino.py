@@ -33,6 +33,7 @@ def timer_hb():
 class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	count_heartbeat = 0
 	count_temp_higher = 0
+	last_seen_temp = None
 	lock = threading.Lock()
 	threading.Timer(HEARTBEAT_TIMER, timer_hb).start()
 
@@ -81,6 +82,7 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 		print "Seen temp " + str(temp)
 		print "Seen temp " + str(TermostatinoHandler.count_temp_higher)
 		t = float(temp.split("=")[1])
+		last_seen_temp = t
 		if t >= TEMP_ALARM:
 			if TermostatinoHandler.count_temp_higher >= COUNT_HIGHER_LIMIT or TermostatinoHandler.count_temp_higher == 0:
 				if TermostatinoHandler.count_temp_higher % 360 == 0:
@@ -102,6 +104,11 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 			print "beat"
 		else:
 			TermostatinoHandler.send_mail("Wrong request POST", True)
+
+	def do_GET(self):
+		#curl -v  localhost:8000/TermostatinoQuery
+		self.send_response(200, "Tutto OK!")
+		#wfile
 
 server_address = ('', LISTEN_PORT)
 httpd = BaseHTTPServer.HTTPServer(server_address, TermostatinoHandler)
