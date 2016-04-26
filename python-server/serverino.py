@@ -5,8 +5,8 @@ import threading
 from email.mime.text import MIMEText
 from secrets import ced_pwd
 
-#WANTED_IP = '130.192.147.17'
-WANTED_IP = '127.0.0.1'
+WANTED_IP = '130.192.147.26'
+#WANTED_IP = '127.0.0.1'
 LISTEN_PORT = 8000
 WANTED_PATH = '/TermostatinoHandler'
 FROM = 'ced.control@gmail.com'
@@ -82,7 +82,7 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 		print "Seen temp " + str(temp)
 		print "Seen temp " + str(TermostatinoHandler.count_temp_higher)
 		t = float(temp.split("=")[1])
-		last_seen_temp = t
+		TermostatinoHandler.last_seen_temp = t
 		if t >= TEMP_ALARM:
 			if TermostatinoHandler.count_temp_higher >= COUNT_HIGHER_LIMIT or TermostatinoHandler.count_temp_higher == 0:
 				if TermostatinoHandler.count_temp_higher % 360 == 0:
@@ -108,7 +108,11 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	def do_GET(self):
 		#curl -v  localhost:8000/TermostatinoQuery
 		self.send_response(200, "Tutto OK!")
-		#wfile
+		content = "<!DOCTYPE html><html><body><p> Temperature in CED: " + str(TermostatinoHandler.last_seen_temp) + "</p></body></html>"
+		self.send_header("Content-Type:", "text/html")
+		self.send_header("Content-Length:", str(len(content)))
+		self.end_headers()
+		self.wfile.write(content)
 
 server_address = ('', LISTEN_PORT)
 httpd = BaseHTTPServer.HTTPServer(server_address, TermostatinoHandler)
