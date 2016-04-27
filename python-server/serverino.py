@@ -14,8 +14,8 @@ TO = 'grassi.e@gmail.com'
 HEARTBEAT_TIMEOUT = 6
 HEARTBEAT_TIMER = 60
 
-TEMP_ALARM = 30
-COUNT_HIGHER_LIMIT = 6
+TEMP_ALARM = 32
+COUNT_HIGHER_LIMIT = 5
 
 def timer_hb():
 	# We expect a heartbeat every 10'' and we send a warning mail
