@@ -5,7 +5,7 @@ import threading
 from email.mime.text import MIMEText
 from secrets import ced_pwd
 
-WANTED_IP = '130.192.147.26'
+WANTED_IP = '130.192.147.17'
 #WANTED_IP = '127.0.0.1'
 LISTEN_PORT = 8000
 WANTED_PATH = '/TermostatinoHandler'
