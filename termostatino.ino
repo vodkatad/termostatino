@@ -38,9 +38,12 @@ int sendMail(float ftemp)
         char ctemp[10]; // FIXME 
         dtostrf(ftemp, 6, 2, ctemp);
         String temp = String(ctemp);
-        client.println(temp.length());
+        String post = "temp=" + temp;
+        client.println(post.length());
+        Serial.println(temp);
+        Serial.println(post.length());
         client.println();
-        client.print(String("temp=" + temp));
+        client.print(post);
         client.println();                                           
         // http://forum.arduino.cc/index.php?topic=155218.0
         client.flush();
