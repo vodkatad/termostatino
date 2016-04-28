@@ -11,11 +11,11 @@ LISTEN_PORT = 8000
 WANTED_PATH = '/TermostatinoHandler'
 FROM = 'ced.control@gmail.com'
 TO = 'grassi.e@gmail.com'
-HEARTBEAT_TIMEOUT = 6
+HEARTBEAT_TIMEOUT = 5
 HEARTBEAT_TIMER = 60
 
 TEMP_ALARM = 32
-COUNT_HIGHER_LIMIT = 5
+COUNT_HIGHER_LIMIT = 6
 
 def timer_hb():
 	# We expect a heartbeat every 10'' and we send a warning mail
@@ -34,6 +34,7 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	count_heartbeat = 0
 	count_temp_higher = 0
 	last_seen_temp = None
+	last_seen_time = None
 	lock = threading.Lock()
 	threading.Timer(HEARTBEAT_TIMER, timer_hb).start()
 
@@ -79,10 +80,9 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	def manage_temp(self, temp):
 		# We will get a ton of mail if temperature continue to switch across the limit.
 		# Otherwise a mail every hour after the first one.
-		print "Seen temp " + str(temp)
-		print "Seen temp " + str(TermostatinoHandler.count_temp_higher)
 		t = float(temp.split("=")[1])
 		TermostatinoHandler.last_seen_temp = t
+		TermostatinoHandler.last_seen_time = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
 		if t >= TEMP_ALARM:
 			if TermostatinoHandler.count_temp_higher >= COUNT_HIGHER_LIMIT or TermostatinoHandler.count_temp_higher == 0:
 				if TermostatinoHandler.count_temp_higher % 360 == 0:
@@ -101,14 +101,14 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 			TermostatinoHandler.lock.acquire()
 			TermostatinoHandler.count_heartbeat += 1
 			TermostatinoHandler.lock.release()
-			print "beat"
 		else:
 			TermostatinoHandler.send_mail("Wrong request POST", True)
 
 	def do_GET(self):
 		#curl -v  localhost:8000/TermostatinoQuery
 		self.send_response(200, "Tutto OK!")
-		content = "<!DOCTYPE html><html><body><p> Temperature in CED: " + str(TermostatinoHandler.last_seen_temp) + "</p></body></html>"
+		content = "<!DOCTYPE html><html><body><p> Temperature in CED: " + str(TermostatinoHandler.last_seen_temp) + "</p>"
+		content += "<p> Got " + TermostatinoHandler.last_seen_time + "</p></body></html>"
 		self.send_header("Content-Type:", "text/html")
 		self.send_header("Content-Length:", str(len(content)))
 		self.end_headers()
