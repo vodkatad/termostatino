@@ -22,8 +22,13 @@ def timer_hb():
 	# if we get less than 6 hb in 1'.
 	print "timer"
 	print TermostatinoHandler.count_heartbeat
-	if TermostatinoHandler.count_heartbeat < HEARTBEAT_TIMEOUT:
-		TermostatinoHandler.send_mail("Termostatino is not beating!", True)
+	print TermostatinoHandle.missed_hb
+        if TermostatinoHandler.count_heartbeat < HEARTBEAT_TIMEOUT:
+		if TermostatinoHandler.missed_hb % 60 == 0:
+			TermostatinoHandler.send_mail("Termostatino is not beating!", True)
+		TermostatinoHandler.missed_hb += 1
+	else:
+		TermostatinoHandler.missed_hb = 0
 	TermostatinoHandler.lock.acquire()
 	TermostatinoHandler.count_heartbeat = 0
 	TermostatinoHandler.lock.release()
@@ -33,6 +38,7 @@ def timer_hb():
 class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	count_heartbeat = 0
 	count_temp_higher = 0
+	missed_hb = 0
 	last_seen_temp = None
 	last_seen_time = None
 	lock = threading.Lock()
