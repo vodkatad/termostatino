@@ -22,7 +22,7 @@ def timer_hb():
 	# if we get less than 6 hb in 1'.
 	print "timer"
 	print TermostatinoHandler.count_heartbeat
-	print TermostatinoHandle.missed_hb
+	print TermostatinoHandler.missed_hb
         if TermostatinoHandler.count_heartbeat < HEARTBEAT_TIMEOUT:
 		if TermostatinoHandler.missed_hb % 60 == 0:
 			TermostatinoHandler.send_mail("Termostatino is not beating!", True)
@@ -114,7 +114,7 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 		#curl -v  localhost:8000/TermostatinoQuery
 		self.send_response(200, "Tutto OK!")
 		content = "<!DOCTYPE html><html><body><p> Temperature in CED: " + str(TermostatinoHandler.last_seen_temp) + "</p>"
-		content += "<p> Got " + TermostatinoHandler.last_seen_time + "</p></body></html>"
+		content += "<p> Got " + str(TermostatinoHandler.last_seen_time) + "</p></body></html>"
 		self.send_header("Content-Type:", "text/html")
 		self.send_header("Content-Length:", str(len(content)))
 		self.end_headers()
