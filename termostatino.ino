@@ -27,7 +27,8 @@ byte web_server[] = { 130, 192, 147, 6 };
 
 int sendMail(float ftemp)
 {
-    if (client.connect(web_server, 8000)) {
+    int res = client.connect(web_server, 8000);
+    if (res) {
         // Make a HTTP POST:
         client.println("POST /TermostatinoHandler HTTP/1.1");           
         client.println("Host: 130.192.147.6"); // bad hardcoded
@@ -52,6 +53,7 @@ int sendMail(float ftemp)
     } else {
         // if you didn't get a connection to the server:
         Serial.println("connection with web server failed, POST");
+        Serial.println(res);
         return(0);
     }
 }
