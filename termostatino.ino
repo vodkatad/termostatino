@@ -27,6 +27,14 @@ byte web_server[] = { 130, 192, 147, 6 };
 
 int sendMail(float ftemp)
 {
+    // I really do not like a busy loop so instead of a while a will skip a loop in some cases
+    if (!client) {
+        Ethernet.begin(mac, ip); //dns, gateway, subnet
+        delay(30000);
+	if (!client) {
+	    return(0);
+	}
+    } 
     int res = client.connect(web_server, 8000);
     if (res) {
         // Make a HTTP POST:
@@ -66,7 +74,7 @@ void setup()
     lcd.print("Setup");
     // We connect.
     Ethernet.begin(mac, ip); //dns, gateway, subnet
-    delay(60000);
+    delay(30000);
 }
 
 void loop() 
