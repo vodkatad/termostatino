@@ -28,41 +28,49 @@ byte web_server[] = { 130, 192, 147, 6 };
 int sendMail(float ftemp)
 {
     // I really do not like a busy loop so instead of a while a will skip a loop in some cases
+    /*
     if (!client) {
         Ethernet.begin(mac, ip); //dns, gateway, subnet
         delay(30000);
 	if (!client) {
 	    return(0);
 	}
-    } 
-    int res = client.connect(web_server, 8000);
-    if (res) {
-        // Make a HTTP POST:
-        client.println("POST /TermostatinoHandler HTTP/1.1");           
-        client.println("Host: 130.192.147.6"); // bad hardcoded
-        client.println("Content-Type: application/x-www-form-urlencoded");
-        client.println("Connection: close");
-        client.println("User-Agent: Arduino/1.0");
-        client.print("Content-Length: ");
-        char ctemp[10]; // FIXME 
-        dtostrf(ftemp, 6, 2, ctemp);
-        String temp = String(ctemp);
-        String post = "temp=" + temp;
-        client.println(post.length());
-        Serial.println(temp);
-        Serial.println(post.length());
-        client.println();
-        client.print(post);
-        client.println();                                           
-        // http://forum.arduino.cc/index.php?topic=155218.0
-        client.flush();
-        client.stop();
-        return(1);
+    } */
+    int reconnected = 0;
+    int res = 0;
+    if (!client.connected()) {
+      client.stop();
+      res = client.connect(web_server, 8000);
+      reconnected = 1;
     } else {
-        // if you didn't get a connection to the server:
-        Serial.println("connection with web server failed, POST");
-        Serial.println(res);
-        return(0);
+        if (!reconnected or res) {
+            // Make a HTTP POST:
+            client.println("POST /TermostatinoHandler HTTP/1.1");           
+            client.println("Host: 130.192.147.6"); // bad hardcoded
+            client.println("Content-Type: application/x-www-form-urlencoded");
+            client.println("Connection: keep-alive");
+            client.println("User-Agent: Arduino/1.0");
+            client.print("Content-Length: ");
+            char ctemp[10]; // FIXME 
+            dtostrf(ftemp, 6, 2, ctemp);
+            String temp = String(ctemp);
+            String post = "temp=" + temp;
+            client.println(post.length());
+            Serial.println(temp);
+            Serial.println(post.length());
+            client.println();
+            client.print(post);
+            client.println();                                           
+            // http://forum.arduino.cc/index.php?topic=155218.0
+            //client.flush();
+            //client.stop();
+            return(1);
+        } else {
+            // if you didn't get a connection to the server:
+            Serial.println("connection with web server failed, POST");
+            Serial.println(res);
+            return(0);
+        }
     }
 }
 
