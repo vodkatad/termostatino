@@ -39,12 +39,14 @@ int sendMail(float ftemp)
     int reconnected = 0;
     int res = 0;
     if (!client.connected()) {
+      Serial.println("Client got disconnected, reconnecting");
       client.stop();
       res = client.connect(web_server, 8000);
       reconnected = 1;
     } else {
         if (!reconnected or res) {
             // Make a HTTP POST:
+            Serial.println("doing POST");
             client.println("POST /TermostatinoHandler HTTP/1.1");           
             client.println("Host: 130.192.147.6"); // bad hardcoded
             client.println("Content-Type: application/x-www-form-urlencoded");
@@ -56,14 +58,15 @@ int sendMail(float ftemp)
             String temp = String(ctemp);
             String post = "temp=" + temp;
             client.println(post.length());
-            Serial.println(temp);
-            Serial.println(post.length());
             client.println();
             client.print(post);
             client.println();                                           
             // http://forum.arduino.cc/index.php?topic=155218.0
             //client.flush();
             //client.stop();
+            Serial.println(temp);
+            Serial.println(post.length());
+            Serial.println("POST done");
             return(1);
         } else {
             // if you didn't get a connection to the server:
@@ -80,13 +83,17 @@ void setup()
     lcd.begin(16, 2);
     pinMode(relay, OUTPUT);
     lcd.print("Setup");
+    Serial.println("Setup pre eth");
     // We connect.
+    delay(15000);
     Ethernet.begin(mac, ip); //dns, gateway, subnet
-    delay(30000);
+    delay(15000);
+    Serial.println("Setup post eth");
 }
 
 void loop() 
 {
+    Serial.println("Loop started");
     int chk = dht.read(DHTPIN);
     float h = dht.humidity;
     float t = dht.temperature;
@@ -107,6 +114,7 @@ void loop()
                 break;
         }
     } else {
+    	Serial.println("Got a temp pre mail");
         lcd.setCursor(0,0);
         lcd.print("Temp=");
         lcd.print(t);
@@ -115,17 +123,19 @@ void loop()
         lcd.print("Humidity=");
         lcd.print(h);
         lcd.print("% ");
-        if(t > tempSoglia) {
+        /*if(t > tempSoglia) {
             digitalWrite(relay, HIGH);
         } else {
             digitalWrite(relay, LOW);
-        }
+        }*/
         int chk_m = sendMail(t);
+    	Serial.println("Got a temp post mail");
         if (!chk_m) {
             Serial.println("Failed to send mail");
         }
     }
     // We read a value every 10 seconds.
     delay(10000);
+    Serial.println("Loop ended");
 }
 
