@@ -11,7 +11,7 @@ LISTEN_PORT = 8000
 WANTED_PATH = '/TermostatinoHandler'
 FROM = 'ced.control@gmail.com'
 TO = 'grassi.e@gmail.com'
-HEARTBEAT_TIMEOUT = 5
+HEARTBEAT_TIMEOUT = 2
 HEARTBEAT_TIMER = 60
 
 TEMP_ALARM = 32
@@ -50,7 +50,8 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 		
 		Return true if all parameters fit, false otherwise.
 		"""
-		return self.client_address[0] == WANTED_IP and self.path == WANTED_PATH
+		return True
+		#return self.client_address[0] == WANTED_IP and self.path == WANTED_PATH
 		# The check on PORT is obviously redundant.
 
 	@staticmethod
