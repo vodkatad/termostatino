@@ -43,6 +43,12 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	last_seen_time = None
 	lock = threading.Lock()
 	threading.Timer(HEARTBEAT_TIMER, timer_hb).start()
+	
+	#http://code.activestate.com/recipes/425210-simple-stoppable-server-using-socket-timeout/
+	# http://stackoverflow.com/questions/10003866/http-server-hangs-while-accepting-packets
+	def server_bind(self):
+        	BaseHTTPServer.HTTPServer.server_bind(self)
+	        self.socket.settimeout(1)
 
 	def check_request(self):
 		""" 
