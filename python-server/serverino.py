@@ -104,6 +104,7 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 			length = int(self.headers["Content-Length"])
 			self.send_response(200, "Tutto OK!")
 			entity = self.rfile.read(length)
+			self.end_headers()
 			self.manage_temp(entity)
 			TermostatinoHandler.lock.acquire()
 			TermostatinoHandler.count_heartbeat += 1
