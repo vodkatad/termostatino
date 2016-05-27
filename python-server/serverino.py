@@ -35,7 +35,7 @@ def timer_hb():
 	TermostatinoHandler.lock.release()
 	threading.Timer(HEARTBEAT_TIMER, timer_hb).start()
 
-class ForkingHTTPServer(SocketServer.ForkingMixIn, BaseHTTPServer.HTTPServer):
+class ThreadingHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     def finish_request(self, request, client_address):
         request.settimeout(30)
         # "super" can not be used because BaseServer is not created from object
@@ -100,7 +100,6 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 		# We will get a ton of mail if temperature continue to switch across the limit.
 		# Otherwise a mail every hour after the first one.
 		t = float(temp.split("=")[1])
-		print t
 		TermostatinoHandler.last_seen_temp = t
 		TermostatinoHandler.last_seen_time = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
 		if t >= TEMP_ALARM:
@@ -128,7 +127,6 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	def do_GET(self):
 		#curl -v  localhost:8000/TermostatinoQuery
 		self.send_response(200, "Tutto OK!")
-		print str(TermostatinoHandler.last_seen_temp)
 		content = "\n<!DOCTYPE html><html><body><p> Temperature in CED: " + str(TermostatinoHandler.last_seen_temp) + "</p>"
 		content += "<p> Got " + str(TermostatinoHandler.last_seen_time) + "</p></body></html>"
 		self.send_header("Content-Type:", "text/html")
@@ -141,7 +139,7 @@ server_address = ('', LISTEN_PORT)
 #httpd.serve_forever() 
 try:
 	print "Server started"
-	srvr = ForkingHTTPServer(server_address, TermostatinoHandler)
+	srvr = ThreadingHTTPServer(server_address, TermostatinoHandler)
         srvr.serve_forever()  # serve_forever
 except KeyboardInterrupt:
 	srvr.socket.close()
