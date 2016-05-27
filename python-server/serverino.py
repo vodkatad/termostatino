@@ -1,4 +1,5 @@
 import BaseHTTPServer
+import SocketServer
 import smtplib
 import time
 import threading
@@ -34,7 +35,12 @@ def timer_hb():
 	TermostatinoHandler.lock.release()
 	threading.Timer(HEARTBEAT_TIMER, timer_hb).start()
 
-# TODO GET on page telling the temperature!
+class ForkingHTTPServer(SocketServer.ForkingMixIn, BaseHTTPServer.HTTPServer):
+    def finish_request(self, request, client_address):
+        request.settimeout(30)
+        # "super" can not be used because BaseServer is not created from object
+        BaseHTTPServer.HTTPServer.finish_request(self, request, client_address)
+
 class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	count_heartbeat = 0
 	count_temp_higher = 0
@@ -94,6 +100,7 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 		# We will get a ton of mail if temperature continue to switch across the limit.
 		# Otherwise a mail every hour after the first one.
 		t = float(temp.split("=")[1])
+		print t
 		TermostatinoHandler.last_seen_temp = t
 		TermostatinoHandler.last_seen_time = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
 		if t >= TEMP_ALARM:
@@ -105,11 +112,11 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 			TermostatinoHandler.count_temp_higher = 0
 
 	def do_POST(self):
-		#curl -v -d 'temp:45'  localhost:8000/TermostatinoHandler
+		#curl -v -d 'temp=45'  localhost:8000/TermostatinoHandler
 		if self.check_request():
 			length = int(self.headers["Content-Length"])
-			self.send_response(200, "Tutto OK!")
 			entity = self.rfile.read(length)
+			self.send_response(200, "Tutto OK!")
 			self.end_headers()
 			self.manage_temp(entity)
 			TermostatinoHandler.lock.acquire()
@@ -121,7 +128,8 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	def do_GET(self):
 		#curl -v  localhost:8000/TermostatinoQuery
 		self.send_response(200, "Tutto OK!")
-		content = "<!DOCTYPE html><html><body><p> Temperature in CED: " + str(TermostatinoHandler.last_seen_temp) + "</p>"
+		print str(TermostatinoHandler.last_seen_temp)
+		content = "\n<!DOCTYPE html><html><body><p> Temperature in CED: " + str(TermostatinoHandler.last_seen_temp) + "</p>"
 		content += "<p> Got " + str(TermostatinoHandler.last_seen_time) + "</p></body></html>"
 		self.send_header("Content-Type:", "text/html")
 		self.send_header("Content-Length:", str(len(content)))
@@ -129,6 +137,12 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 		self.wfile.write(content)
 
 server_address = ('', LISTEN_PORT)
-httpd = BaseHTTPServer.HTTPServer(server_address, TermostatinoHandler)
-httpd.serve_forever() 
+#httpd = BaseHTTPServer.HTTPServer(server_address, TermostatinoHandler)
+#httpd.serve_forever() 
+try:
+	print "Server started"
+	srvr = ForkingHTTPServer(server_address, TermostatinoHandler)
+        srvr.serve_forever()  # serve_forever
+except KeyboardInterrupt:
+	srvr.socket.close()
 
