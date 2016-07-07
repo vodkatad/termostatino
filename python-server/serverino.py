@@ -11,11 +11,11 @@ WANTED_IP = '130.192.147.17'
 LISTEN_PORT = 8000
 WANTED_PATH = '/TermostatinoHandler'
 FROM = 'ced.control@gmail.com'
-TO = 'grassi.e@gmail.com'
+TO = ['salvatore.margaglione@unito.it', 'antonio.lentini@unito.it', 'grassi.e@gmail.com']
 HEARTBEAT_TIMEOUT = 2
 HEARTBEAT_TIMER = 60
 
-TEMP_ALARM = 32
+TEMP_ALARM = 28
 COUNT_HIGHER_LIMIT = 6
 
 def timer_hb():
@@ -75,7 +75,7 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 			msg = MIMEText("CED temperature beyond the limit " + str(body))
 			msg['Subject'] = 'CED temperature alarm'
 		msg['From'] = FROM
-		msg['To'] = TO
+		msg['To'] = ", ".join(TO)
 		try:
 			s = smtplib.SMTP_SSL('smtp.gmail.com', 465)
 			s.login(FROM, ced_pwd)
@@ -127,7 +127,7 @@ class TermostatinoHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	def do_GET(self):
 		#curl -v  localhost:8000/TermostatinoQuery
 		self.send_response(200, "Tutto OK!")
-		content = "\n<!DOCTYPE html><html><body><p> Temperature in CED: " + str(TermostatinoHandler.last_seen_temp) + "</p>"
+		content = "<!DOCTYPE html><html><body><p> Temperature in CED: " + str(TermostatinoHandler.last_seen_temp) + "</p>"
 		content += "<p> Got " + str(TermostatinoHandler.last_seen_time) + "</p></body></html>"
 		self.send_header("Content-Type:", "text/html")
 		self.send_header("Content-Length:", str(len(content)))
